@@ -1,0 +1,11 @@
+.vscode/
+*.iml
+
+# Agent harness — local only, never commit
+.agents/
+.opencode/
+AGENTS.md
+
+# Test statement — local only
+prueba_conocimientos_desarrollador_ti.md
+*.pdf
