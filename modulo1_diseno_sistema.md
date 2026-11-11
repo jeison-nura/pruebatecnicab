@@ -117,7 +117,7 @@ módulo como servicio mañana equivale a mover su schema, sin remodelar datos. L
 de negocio viven en el backend; la base conserva solo **constraints estructurales** como
 última línea de defensa (FK, NOT NULL, CHECK de estados).
 
-**Excepción deliberada:** `Riesgo` comparte el schema de `Poliza`. Forman un único
+**Excepción deliberada:** `Risk` comparte el schema de `Policy`. Forman un único
 agregado transaccional — la regla "cancelar póliza cancela todos sus riesgos" exige
 atomicidad inmediata — y separarlos obligaría a coordinar un saga para algo que es una
 transacción local.
@@ -131,17 +131,24 @@ viable porque no existen transacciones cruzadas entre módulos.
 
 ### Entidades
 
-- **Poliza (base)** — tabla padre con lo común: id, tipo (`INDIVIDUAL`/`COLECTIVA`),
-  estado (`ACTIVA`, `RENOVADA`, `CANCELADA`), fecha de inicio y fin de vigencia,
-  canon mensual, prima (canon × meses de vigencia), tomador/asegurado/beneficiario
-  según tipo, timestamps de auditoría.
-- **PolizaIndividual / PolizaColectiva** — tablas hijas por estrategia JOINED: lo
-  específico de cada tipo vive separado porque cada tipo evoluciona de forma
-  independiente (la colectiva referencia a la inmobiliaria y sus arrendatarios
-  asegurados; la individual al arrendatario tomador). Ninguna hereda de la otra:
-  ambas heredan de la principal.
-- **Riesgo** — tabla propia relacionada a la póliza (FK), con su propio estado
-  (`ACTIVO`/`CANCELADO`) y datos del riesgo asegurado. La regla "una individual solo
+- **Policy (una sola tabla `policy`)** — id UUIDv7, policy_type_id (FK al catálogo),
+  estado (`ACTIVE`, `RENEWED`, `CANCELLED`), vigencia (inicio/fin), canon mensual
+  (`monthly_rent`), prima (`premium` = canon × meses de vigencia), timestamps de
+  auditoría y `@Version`. Entidad independiente: sin herencia JPA.
+- **PolicyType** — tabla catálogo (`1=INDIVIDUAL`, `2=GROUP`) con descripción,
+  referenciada por FK desde `policy`. Los ids del catálogo son fijos (secuenciales).
+- **Identificadores del dominio: UUIDv7** (RFC 9562, time-ordered) — las PK de
+  `policy` y `risk` son UUID generadas por Hibernate (`@UuidGenerator`, style TIME)
+  antes del INSERT: no adivinables desde el API (mitiga enumeración/IDOR), no filtran
+  volumen de negocio, y se generan en cualquier nodo sin coordinar con la DB (apoya
+  la extracción a microservicios). Las tablas de infraestructura (`outbox_event`,
+  `ipc`, `notification`) conservan BIGINT secuencial: son internas y su orden ayuda
+  al worker. Las referencias hacia el dominio (`policy_id`) son UUID.
+- **Regla por tipo en el service** — la diferencia entre tipos (individual: máx 1
+  riesgo; colectiva: N riesgos) es regla de negocio, no jerarquía de clases ni
+  estructura de almacenamiento distinta.
+- **Risk** — tabla propia relacionada a la póliza (FK), con su propio estado
+  (`ACTIVE`/`CANCELLED`) y datos del riesgo asegurado. La regla "una individual solo
   tiene 1 riesgo" y "solo colectivas agregan riesgos" se aplica en el service.
 - **OutboxEvent** — tabla de integración: id, tipo de evento (`ACTUALIZACION`,
   `CREACION`, `RENOVACION`), payload, estado (`PENDING`/`DELIVERED`/`FAILED`),
@@ -149,16 +156,16 @@ viable porque no existen transacciones cruzadas entre módulos.
   cambio de estado; el worker la drena.
 - **Ipc** — tabla de soporte de la renovación: fecha de aplicación y porcentaje.
   Permite auditar qué IPC se usó en cada renovación y configurar el próximo.
-- **Notificacion** — tracking de notificaciones: canal (`EMAIL`/`SMS`),
+- **Notification** — tracking de notificaciones: canal (`EMAIL`/`SMS`),
   destinatario, evento origen, estado de entrega, intentos.
 
 ### Relaciones
 
 ```
-Poliza 1 ──── N Riesgo
-Poliza 1 ──── N OutboxEvent (evento de sincronización al CORE)
-Poliza 1 ──── N Notificacion
-Ipc          (referenciada por fecha de aplicación en la renovación)
+Policy 1 ──── N Risk
+Policy 1 ──── N OutboxEvent (evento de sincronización al CORE)
+Policy 1 ──── N Notification
+Ipc           (referenciada por fecha de aplicación en la renovación)
 ```
 
 ---
@@ -228,7 +235,7 @@ en Docker.
 
 ### 4.4 Concurrencia y saturación de la base
 
-- **Lock optimista (`@Version`) en `Poliza` y `Riesgo`:** transiciones concurrentes
+- **Lock optimista (`@Version`) en `Policy` y `Risk`:** transiciones concurrentes
   (renovar vs cancelar sobre la misma póliza) revalidan la versión al escribir — el
   perdedor recibe `409`. La contención por fila es baja en este dominio; el lock
   optimista convierte la carrera en un conflicto explícito y reintentable.
@@ -265,7 +272,7 @@ prueba local: bajo una prueba de carga seria, la base es PostgreSQL.
 - **Versionamiento por path** (`/v1/...`): explícito, fácil de rutear y filtrar en el
   gateway, y de depurar en logs.
 - **Criterio de cambio breaking = compatibilidad hacia atrás:**
-  - Añadir un campo **opcional** a `Poliza` **no es breaking** (los consumidores viejos
+  - Añadir un campo **opcional** a `Policy` **no es breaking** (los consumidores viejos
     lo ignoran) → no hay bump de versión.
   - Quitar/renombrar un campo, cambiar su tipo o su semántica **es breaking** → nueva
     versión `/v2` en paralelo, con ventana de deprecación de `/v1` y headers
@@ -300,7 +307,7 @@ flowchart TB
     ADP["Adapter Integración CORE<br/>capa media WebLogic<br/>servicio agnóstico de edición"]
     CORE["CORE transaccional legado"]
     PROV["Proveedor correo / SMS"]
-    DB[("Base de datos — una instancia, un schema por módulo<br/>PostgreSQL (referencia) / H2 (local)<br/>schema poliza: poliza · poliza_individual · poliza_colectiva<br/>riesgo · outbox_event · ipc<br/>schema notificaciones: notificacion<br/>sin joins/FKs cruzados entre schemas")]
+    DB[("Base de datos — una instancia, un schema por módulo<br/>PostgreSQL (referencia) / H2 (local)<br/>schema policy: policy_type (catálogo) · policy (FK al catálogo)<br/>risk · outbox_event · ipc<br/>schema notifications: notification<br/>sin joins/FKs cruzados entre schemas")]
 
     FE -->|"HTTPS + x-api-key"| GW
     GW --> MONO
