@@ -1,13 +1,13 @@
-package com.prueba.polizas;
+package com.prueba.policies;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PolizasApplication {
+public class PoliciesApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(PolizasApplication.class, args);
+		SpringApplication.run(PoliciesApplication.class, args);
 	}
 
 }

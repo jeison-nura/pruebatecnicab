@@ -1,10 +1,10 @@
-package com.prueba.polizas;
+package com.prueba.policies;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class PolizasApplicationTests {
+class PoliciesApplicationTests {
 
 	@Test
 	void contextLoads() {

@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.prueba</groupId>
-	<artifactId>polizas</artifactId>
+	<artifactId>policies</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>polizas</name>
-	<description>API de gestion de polizas de arrendamiento</description>
+	<name>policies</name>
+	<description>Lease insurance policy management API</description>
 	<url/>
 	<licenses>
 		<license/>
