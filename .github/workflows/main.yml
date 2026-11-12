@@ -1,0 +1,18 @@
+name: Notify Discord on PR
+
+on:
+  pull_request:
+    types: [opened, reopened, edited]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        uses: rjstone/discord-webhook-notify@v2
+        with:
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          # El siguiente es el mensaje personalizado que quieres enviar.
+          # Utiliza la sintaxis de formato de Discord para mencionar a @everyone.
+          # Las variables como `github.event.pull_request.html_url` se llenan automáticamente.
+          content: "@everyone revisen esto vagos -- pr\n${{ github.event.pull_request.html_url }}"

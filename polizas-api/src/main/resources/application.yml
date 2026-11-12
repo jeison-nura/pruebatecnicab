@@ -7,16 +7,20 @@ spring:
     username: sa
     password: ""
   jpa:
-    # anti-pattern for APIs: no queries during response rendering
     open-in-view: false
     hibernate:
-      # Flyway owns the schema; Hibernate only validates
       ddl-auto: validate
   flyway:
     schemas: policy, notifications
   h2:
     console:
-      enabled: true
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
 
 server:
   port: 8080

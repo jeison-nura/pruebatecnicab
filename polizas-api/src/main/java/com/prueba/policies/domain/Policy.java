@@ -120,6 +120,10 @@ public class Policy {
         return validityEnd;
     }
 
+    public void setValidityEnd(LocalDate validityEnd) {
+        this.validityEnd = validityEnd;
+    }
+
     public BigDecimal getMonthlyRent() {
         return monthlyRent;
     }

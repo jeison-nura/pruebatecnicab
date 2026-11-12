@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.prueba.policies.service.PolicyServiceTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-12T00:31:55.602Z" hostname="JEISON" time="0.651">
+  <properties/>
+  <testcase name="regla 1: individual con 1 riesgo activo → rechaza el segundo" classname="com.prueba.policies.service.PolicyServiceTest" time="0.6"/>
+  <testcase name="cancelRisk: riesgo inexistente → RiskNotFoundException" classname="com.prueba.policies.service.PolicyServiceTest" time="0.007"/>
+  <testcase name="regla 4: colectiva admite varios riesgos (no consulta el conteo)" classname="com.prueba.policies.service.PolicyServiceTest" time="0.016"/>
+  <testcase name="renew: aplica IPC al canon y recalcula prima" classname="com.prueba.policies.service.PolicyServiceTest" time="0.009"/>
+  <testcase name="renew: extiende vigencia por el periodo inicial, estado RENEWED y recalcula prima sin IPC" classname="com.prueba.policies.service.PolicyServiceTest" time="0.002"/>
+  <testcase name="addRisk: póliza inexistente → PolicyNotFoundException" classname="com.prueba.policies.service.PolicyServiceTest" time="0.003"/>
+  <testcase name="regla 3: cancelar póliza cancela todos sus riesgos activos en la misma transacción" classname="com.prueba.policies.service.PolicyServiceTest" time="0.004"/>
+  <testcase name="regla 2: renovar una póliza CANCELADA → rechaza" classname="com.prueba.policies.service.PolicyServiceTest" time="0.002"/>
+  <testcase name="addRisk: individual con 0 riesgos activos → agrega el riesgo" classname="com.prueba.policies.service.PolicyServiceTest" time="0.003"/>
+  <testcase name="cancelRisk: cancela un riesgo por id" classname="com.prueba.policies.service.PolicyServiceTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
