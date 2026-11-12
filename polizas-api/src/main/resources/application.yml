@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: policies
+  autoconfigure:
+    # The API uses x-api-key only; avoid creating/logging an unused generated password.
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:policies;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    schemas: policy, notifications
+  h2:
+    console:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+server:
+  port: 8080
+
+logging:
+  level:
+    # JDBC exception messages may embed the Idempotency-Key in a unique-constraint violation.
+    # The API returns 409 for expected collisions and logs sanitized error codes elsewhere.
+    org.hibernate.orm.jdbc.error: OFF
+  structured:
+    format:
+      console: logstash
+
+app:
+  # Fixed test credential required by the challenge; not a production secret.
+  api-key: "123456"

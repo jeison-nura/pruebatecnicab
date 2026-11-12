@@ -1,0 +1,172 @@
+{
+  "info": {
+    "_postman_id": "polizas-api-module-2",
+    "name": "Policies API - Module 2",
+    "description": "Only the endpoints defined by the Module 2 challenge.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "apiKey",
+      "value": "123456"
+    },
+    {
+      "key": "policyId",
+      "value": "01a1ce48-d512-720a-97c8-386d6a328fdf"
+    },
+    {
+      "key": "riskId",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKey",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "item": [
+    {
+      "name": "GET /polizas",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/polizas?tipo=GROUP&estado=ACTIVE&page=0&size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "polizas"],
+          "query": [
+            { "key": "tipo", "value": "GROUP" },
+            { "key": "estado", "value": "ACTIVE" },
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /polizas/{id}/riesgos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/riesgos?page=0&size=20"
+      }
+    },
+    {
+      "name": "POST /polizas/{id}/renovar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}",
+            "disabled": true
+          }
+        ],
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/renovar"
+      }
+    },
+    {
+      "name": "POST /polizas/{id}/cancelar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}",
+            "disabled": true
+          }
+        ],
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/cancelar"
+      }
+    },
+    {
+      "name": "POST /polizas/{id}/riesgos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Apartment 3\"\n}"
+        },
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/riesgos"
+      }
+    },
+    {
+      "name": "POST /riesgos/{id}/cancelar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}",
+            "disabled": true
+          }
+        ],
+        "url": "{{baseUrl}}/v1/riesgos/{{riskId}}/cancelar"
+      }
+    },
+    {
+      "name": "POST /core-mock/evento",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"evento\": \"ACTUALIZACION\",\n  \"polizaId\": 555\n}"
+        },
+        "url": "{{baseUrl}}/core-mock/evento"
+      }
+    }
+  ]
+}

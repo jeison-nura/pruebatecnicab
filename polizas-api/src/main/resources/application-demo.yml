@@ -1,0 +1,6 @@
+spring:
+  flyway:
+    # Demo-only data is never loaded in the default profile.
+    locations:
+      - classpath:db/migration
+      - classpath:db/demo
