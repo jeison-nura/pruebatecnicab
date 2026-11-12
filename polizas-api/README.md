@@ -95,9 +95,8 @@ La aplicación queda disponible en:
 http://localhost:8080
 ```
 
-Para detener una aplicación ejecutada directamente con `java -jar`, presiona `Ctrl+C`
-en esa misma terminal. Si se ejecutó desde otra terminal o con `spring-boot:run`,
-identifica primero el proceso que ocupa el puerto 8080 y detén únicamente ese proceso.
+Para detener la aplicación ejecutada con `java -jar`, presiona `Ctrl+C` en esa misma
+terminal. Al usar H2 en memoria los datos se reinician al parar.
 
 ## 6. Ejecutar con datos de prueba
 
@@ -147,8 +146,8 @@ x-api-key: 123456
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `GET` | `/v1/polizas` | Lista pólizas. Acepta `tipo` y `estado` opcionales. |
-| `GET` | `/v1/polizas/{id}/riesgos` | Lista los riesgos de una póliza. |
+| `GET` | `/v1/polizas` | Lista pólizas con filtros `tipo`, `estado` y paginación `page`, `size`. |
+| `GET` | `/v1/polizas/{id}/riesgos` | Lista los riesgos de una póliza con `page` y `size`. |
 | `POST` | `/v1/polizas/{id}/renovar` | Renueva por el periodo inicial y aplica el IPC. |
 | `POST` | `/v1/polizas/{id}/cancelar` | Cancela la póliza y todos sus riesgos activos. |
 | `POST` | `/v1/polizas/{id}/riesgos` | Agrega un riesgo únicamente a una póliza `GROUP`. |
@@ -161,11 +160,31 @@ Valores válidos:
 - `tipo`: `INDIVIDUAL` o `GROUP`.
 - `estado`: `ACTIVE`, `RENEWED` o `CANCELLED`.
 
+Los dos listados aceptan `page` (desde `0`, por defecto `0`) y `size` (de `1` a `100`,
+por defecto `20`). Parámetros inválidos devuelven `400`; páginas fuera del rango
+devuelven `content` vacío. Los resultados se ordenan por `createdAt` e `id` ascendente
+para mantener un orden estable. El formato de respuesta es:
+
+```json
+{
+  "content": [],
+  "page": 0,
+  "size": 20,
+  "totalElements": 0,
+  "totalPages": 0
+}
+```
+
+**Cambio de contrato:** anteriormente los GET devolvían arreglos JSON directamente;
+ahora los datos están dentro de `content` junto con metadatos de paginación. Los clientes
+existentes deben adaptar la lectura de la respuesta (para una API publicada, esto
+requeriría una nueva versión o una transición de compatibilidad).
+
 Ejemplo de listado:
 
 ```bash
 curl -H 'x-api-key: 123456' \
-  'http://localhost:8080/v1/polizas?tipo=GROUP&estado=ACTIVE'
+  'http://localhost:8080/v1/polizas?tipo=GROUP&estado=ACTIVE&page=0&size=20'
 ```
 
 Ejemplo de agregar riesgo:

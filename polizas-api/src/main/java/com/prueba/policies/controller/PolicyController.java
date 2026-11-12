@@ -1,8 +1,11 @@
 package com.prueba.policies.controller;
 
-import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,24 +33,30 @@ public class PolicyController implements PolicyControllerOperations {
 
     @Override
     @GetMapping("/polizas")
-    public ResponseEntity<List<PolicyDTO>> getAllPolicies(
+    public ResponseEntity<PagedResponse<PolicyDTO>> getAllPolicies(
             @RequestParam(required = false) String tipo,
-            @RequestParam(required = false) String estado) {
-        List<Policy> policies = policyService.findAll(tipo, estado);
-        List<PolicyDTO> dtos = policies.stream()
-                .map(this::toDTO)
-                .toList();
-        return ResponseEntity.ok(dtos);
+            @RequestParam(required = false) String estado,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Page<PolicyDTO> policies = policyService.findAll(tipo, estado, pagination(page, size)).map(this::toDTO);
+        return ResponseEntity.ok(PagedResponse.from(policies));
     }
 
     @Override
     @GetMapping("/polizas/{id}/riesgos")
-    public ResponseEntity<List<RiskDTO>> getRisksByPolicyId(@PathVariable UUID id) {
-        List<Risk> risks = policyService.findRisksByPolicyId(id);
-        List<RiskDTO> dtos = risks.stream()
-                .map(this::toDTO)
-                .toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<PagedResponse<RiskDTO>> getRisksByPolicyId(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Page<RiskDTO> risks = policyService.findRisksByPolicyId(id, pagination(page, size)).map(this::toDTO);
+        return ResponseEntity.ok(PagedResponse.from(risks));
+    }
+
+    private Pageable pagination(int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new IllegalArgumentException("page must be >= 0 and size must be between 1 and 100");
+        }
+        return PageRequest.of(page, size, Sort.by("createdAt", "id").ascending());
     }
 
     @Override

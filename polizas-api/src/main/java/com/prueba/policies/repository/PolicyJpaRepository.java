@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -29,6 +32,19 @@ public interface PolicyJpaRepository extends JpaRepository<Policy, UUID> {
     @Override
     @EntityGraph(attributePaths = "policyType")
     List<Policy> findAll();
+
+    @EntityGraph(attributePaths = "policyType")
+    Page<Policy> findByPolicyType_Name(String name, Pageable pageable);
+
+    @EntityGraph(attributePaths = "policyType")
+    Page<Policy> findByStatus(PolicyStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = "policyType")
+    Page<Policy> findByPolicyType_NameAndStatus(String name, PolicyStatus status, Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = "policyType")
+    Page<Policy> findAll(Pageable pageable);
 
     /**
      * Pessimistic lock (SELECT FOR UPDATE) — serializes concurrent access

@@ -42,12 +42,14 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/v1/polizas?tipo=GROUP&estado=ACTIVE",
+          "raw": "{{baseUrl}}/v1/polizas?tipo=GROUP&estado=ACTIVE&page=0&size=20",
           "host": ["{{baseUrl}}"],
           "path": ["v1", "polizas"],
           "query": [
             { "key": "tipo", "value": "GROUP" },
-            { "key": "estado", "value": "ACTIVE" }
+            { "key": "estado", "value": "ACTIVE" },
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" }
           ]
         }
       }
@@ -62,7 +64,7 @@
             "value": "{{apiKey}}"
           }
         ],
-        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/riesgos"
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/riesgos?page=0&size=20"
       }
     },
     {

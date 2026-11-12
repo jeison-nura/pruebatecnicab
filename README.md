@@ -1,70 +1,46 @@
-# MngLib
+# Prueba técnica — Plataforma de gestión de pólizas de arrendamiento
 
-Plataforma de anime y manga construida como monorepo: frontend **Next.js** y backend de **microservicios** (Go + Rust) detrás de un API Gateway.
+Repositorio de entregables para la prueba técnica de desarrollador TI/Sénior. El caso
+aborda el diseño y la implementación de una plataforma para gestionar pólizas de
+arrendamiento individuales y colectivas, además de ejercicios de optimización SQL, Git y
+liderazgo técnico.
 
-## Estructura
+## Módulos de la prueba
 
+| Módulo | Tema | Documento |
+|---|---|---|
+| 1 | Diseño de sistema y arquitectura propuesta | [modulo1_diseno_sistema.md](modulo1_diseno_sistema.md) |
+| 2 | Modelo de entidades UML y API funcional | [modulo2_uml_entidades.md](modulo2_uml_entidades.md) |
+| 3 | Estrategias de optimización de una consulta SQL | [modulo3_base_datos.md](modulo3_base_datos.md) |
+| 4 | Flujo Git para incorporar un cambio específico con `cherry-pick` | [modulo4_git.md](modulo4_git.md) |
+| 5 | Liderazgo técnico, organización y gestión del equipo | [modulo5_liderazgo.md](modulo5_liderazgo.md) |
+
+El enunciado original está disponible en [prueba_conocimientos_desarrollador_ti.md](prueba_conocimientos_desarrollador_ti.md).
+
+## Módulo 2 — Proyecto Java
+
+La API está en [`polizas-api/`](polizas-api/), implementada con Java 17, Spring Boot y
+Maven Wrapper. Su README contiene los requisitos, comandos para compilar y ejecutar,
+endpoints, ejemplos y datos de demostración:
+
+- [Instrucciones de la API](polizas-api/README.md)
+- [Colección Postman](polizas-api/postman_collection.json): se adjunta para importar y
+  probar los siete endpoints requeridos.
+- [Diagrama UML de entidades](modulo2_uml_entidades.md#1-diagrama-de-clases): se incluye
+  en el documento del Módulo 2 en formato Mermaid para revisarlo directamente en un visor
+  compatible.
+
+## Estructura principal
+
+```text
+.
+├── modulo1_diseno_sistema.md
+├── modulo2_uml_entidades.md
+├── modulo3_base_datos.md
+├── modulo4_git.md
+├── modulo5_liderazgo.md
+├── polizas-api/
+│   ├── README.md
+│   └── postman_collection.json
+└── prueba_conocimientos_desarrollador_ti.md
 ```
-animetest/
-  backend/    # Gateway (Go) + servicios: auth, catalog, content, activity
-  mnglib/     # Frontend Next.js (App Router)
-```
-
-## Stack
-
-### Frontend (`mnglib/`)
-
-- Next.js (App Router) + React
-- TypeScript + Tailwind CSS 4
-- ShadCN UI + Lucide
-
-### Backend (`backend/`)
-
-- **Gateway** (Go): punto único de entrada, valida JWT, rate limit, CORS.
-- **Auth** (Go): registro, login, refresh tokens rotativos, logout.
-- **Catalog** (Rust/axum): anime, manga, búsqueda, listados, hero slides.
-- **Content** (Go): proveedores/scans, uploads, streaming HLS y páginas de manga (+ worker de transcodificación).
-- **Activity** (Go): listas personales, progreso, historial y perfil.
-- Infraestructura local: PostgreSQL, NATS y MinIO vía Docker Compose.
-
-Ver `backend/docs/ARCHITECTURE.md` para la arquitectura completa.
-
-## Desarrollo
-
-### Backend
-
-```bash
-cd backend
-make up      # levanta postgres + nats + minio + todos los servicios + gateway
-make smoke   # health + register + login de prueba
-```
-
-Gateway disponible en `http://localhost:8080`.
-
-### Frontend
-
-```bash
-cd mnglib
-cp .env.example .env.local     # dejar vacío = modo mock; apuntar a gateway para API real
-npm install
-npm run dev
-```
-
-Disponible en `http://localhost:3000`.
-
-## Estado actual
-
-- Frontend con vistas de home, búsqueda, perfil, my list, favoritos, notificaciones, login, player y manga reader.
-- Funciona con datos mock o contra el gateway real.
-- Backend: Auth, Catalog, Activity y Content desplegados vía compose; Content incluye worker de transcodificación.
-- Streaming/páginas vía URLs firmadas contra MinIO (compatible S3).
-
-## Documentación
-
-- Arquitectura: `backend/docs/ARCHITECTURE.md`
-- Frontend: `mnglib/README.md`
-- Backend: `backend/README.md`
-
-## Licencia
-
-Proyecto privado — ver licencia en el repositorio.

@@ -20,6 +20,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.prueba.policies.domain.Ipc;
 import com.prueba.policies.domain.Policy;
@@ -267,29 +270,31 @@ class PolicyServiceTest {
 
     @Test
     void findAll_usesMatchingRepositoryForEachFilterCombination() {
-        when(policyRepository.findByPolicyType_NameAndStatus(PolicyType.GROUP, PolicyStatus.ACTIVE))
-                .thenReturn(List.of());
-        when(policyRepository.findByPolicyType_Name(PolicyType.GROUP)).thenReturn(List.of());
-        when(policyRepository.findByStatus(PolicyStatus.ACTIVE)).thenReturn(List.of());
-        when(policyRepository.findAll()).thenReturn(List.of());
+        Pageable pageable = PageRequest.of(1, 1);
+        when(policyRepository.findByPolicyType_NameAndStatus(PolicyType.GROUP, PolicyStatus.ACTIVE, pageable))
+                .thenReturn(new PageImpl<>(List.of()));
+        when(policyRepository.findByPolicyType_Name(PolicyType.GROUP, pageable)).thenReturn(new PageImpl<>(List.of()));
+        when(policyRepository.findByStatus(PolicyStatus.ACTIVE, pageable)).thenReturn(new PageImpl<>(List.of()));
+        when(policyRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of()));
 
-        assertThat(policyService.findAll(PolicyType.GROUP, "active")).isEmpty();
-        assertThat(policyService.findAll(PolicyType.GROUP, null)).isEmpty();
-        assertThat(policyService.findAll(null, "active")).isEmpty();
-        assertThat(policyService.findAll(null, null)).isEmpty();
-        verify(policyRepository).findByPolicyType_NameAndStatus(PolicyType.GROUP, PolicyStatus.ACTIVE);
-        verify(policyRepository).findByPolicyType_Name(PolicyType.GROUP);
-        verify(policyRepository).findByStatus(PolicyStatus.ACTIVE);
-        verify(policyRepository).findAll();
+        assertThat(policyService.findAll(PolicyType.GROUP, "active", pageable).getContent()).isEmpty();
+        assertThat(policyService.findAll(PolicyType.GROUP, null, pageable).getContent()).isEmpty();
+        assertThat(policyService.findAll(null, "active", pageable).getContent()).isEmpty();
+        assertThat(policyService.findAll(null, null, pageable).getContent()).isEmpty();
+        verify(policyRepository).findByPolicyType_NameAndStatus(PolicyType.GROUP, PolicyStatus.ACTIVE, pageable);
+        verify(policyRepository).findByPolicyType_Name(PolicyType.GROUP, pageable);
+        verify(policyRepository).findByStatus(PolicyStatus.ACTIVE, pageable);
+        verify(policyRepository).findAll(pageable);
     }
 
     @Test
     void findRisks_requiresExistingPolicy() {
+        Pageable pageable = PageRequest.of(0, 20);
         when(policyRepository.existsById(POLICY_ID)).thenReturn(false, true);
-        assertThatThrownBy(() -> policyService.findRisksByPolicyId(POLICY_ID))
+        assertThatThrownBy(() -> policyService.findRisksByPolicyId(POLICY_ID, pageable))
                 .isInstanceOf(PolicyNotFoundException.class);
-        when(riskRepository.findByPolicyId(POLICY_ID)).thenReturn(List.of());
-        assertThat(policyService.findRisksByPolicyId(POLICY_ID)).isEmpty();
-        verify(riskRepository).findByPolicyId(POLICY_ID);
+        when(riskRepository.findByPolicyId(POLICY_ID, pageable)).thenReturn(new PageImpl<>(List.of()));
+        assertThat(policyService.findRisksByPolicyId(POLICY_ID, pageable).getContent()).isEmpty();
+        verify(riskRepository).findByPolicyId(POLICY_ID, pageable);
     }
 }

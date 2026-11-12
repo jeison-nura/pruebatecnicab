@@ -135,7 +135,7 @@ class PolicyApiTest {
                 LocalDate.of(2026, 7, 1), new BigDecimal("1000")));
         mvc.perform(get("/v1/polizas").param("tipo", "GROUP").param("estado", "ACTIVE")
                         .header("x-api-key", "123456"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[0].type").value("GROUP"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].type").value("GROUP"));
     }
 
     @Test
@@ -145,6 +145,70 @@ class PolicyApiTest {
         risks.save(new Risk(policy, "Apartment 1"));
 
         mvc.perform(get("/v1/polizas/{id}/riesgos", policy.getId()).header("x-api-key", "123456"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[0].description").value("Apartment 1"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].description").value("Apartment 1"));
+    }
+
+    @Test
+    void paginatesPoliciesWithFiltersAndMetadata() throws Exception {
+        policies.save(new Policy(types.findById(2).orElseThrow(), LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 7, 1), new BigDecimal("1000")));
+        policies.save(new Policy(types.findById(2).orElseThrow(), LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 7, 1), new BigDecimal("2000")));
+        policies.save(new Policy(types.findById(1).orElseThrow(), LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 7, 1), new BigDecimal("3000")));
+
+        mvc.perform(get("/v1/polizas").param("tipo", "GROUP").param("estado", "ACTIVE")
+                        .param("page", "1").param("size", "1").header("x-api-key", "123456"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].type").value("GROUP"))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+    }
+
+    @Test
+    void paginatesRisksWithinPolicy() throws Exception {
+        Policy policy = policies.save(new Policy(types.findById(2).orElseThrow(),
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 7, 1), new BigDecimal("1000")));
+        risks.save(new Risk(policy, "Apartment 1"));
+        risks.save(new Risk(policy, "Apartment 2"));
+
+        mvc.perform(get("/v1/polizas/{id}/riesgos", policy.getId())
+                        .param("page", "1").param("size", "1").header("x-api-key", "123456"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].policyId").value(policy.getId().toString()))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+
+        mvc.perform(get("/v1/polizas/{id}/riesgos", policy.getId())
+                        .param("page", "2").param("size", "1").header("x-api-key", "123456"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(2));
+    }
+
+    @Test
+    void rejectsInvalidPagination() throws Exception {
+        for (String[] params : new String[][] { { "-1", "20" }, { "0", "0" }, { "0", "101" }, { "abc", "20" } }) {
+            mvc.perform(get("/v1/polizas").param("page", params[0]).param("size", params[1])
+                            .header("x-api-key", "123456"))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(get("/v1/polizas/{id}/riesgos", UUID.randomUUID())
+                            .param("page", params[0]).param("size", params[1])
+                            .header("x-api-key", "123456"))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void defaultsToBoundedFirstPage() throws Exception {
+        mvc.perform(get("/v1/polizas").header("x-api-key", "123456"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 }

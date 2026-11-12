@@ -10,9 +10,9 @@ import jakarta.validation.constraints.Size;
 
 public interface PolicyControllerOperations {
 
-    ResponseEntity<List<PolicyDTO>> getAllPolicies(String type, String status);
+    ResponseEntity<PagedResponse<PolicyDTO>> getAllPolicies(String type, String status, int page, int size);
 
-    ResponseEntity<List<RiskDTO>> getRisksByPolicyId(UUID policyId);
+    ResponseEntity<PagedResponse<RiskDTO>> getRisksByPolicyId(UUID policyId, int page, int size);
 
     ResponseEntity<RiskDTO> addRisk(UUID policyId, CreateRiskRequest request);
 
@@ -27,5 +27,12 @@ record PolicyDTO(UUID id, String type, String status, String validityStart, Stri
                 String monthlyRent, String premium, String createdAt) {}
 
 record RiskDTO(UUID id, UUID policyId, String description, String status, String createdAt) {}
+
+record PagedResponse<T>(List<T> content, int page, int size, long totalElements, int totalPages) {
+    static <T> PagedResponse<T> from(org.springframework.data.domain.Page<T> result) {
+        return new PagedResponse<>(result.getContent(), result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages());
+    }
+}
 
 record CreateRiskRequest(@NotBlank @Size(max = 255) String description) {}

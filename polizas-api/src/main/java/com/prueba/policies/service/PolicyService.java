@@ -6,6 +6,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -113,21 +116,23 @@ public class PolicyService {
         return riskRepository.save(risk);
     }
 
-    public List<Policy> findAll(String tipo, String estado) {
+    @Transactional(readOnly = true)
+    public Page<Policy> findAll(String tipo, String estado, Pageable pageable) {
         if (tipo != null && estado != null) {
-            return policyRepository.findByPolicyType_NameAndStatus(tipo, PolicyStatus.valueOf(estado.toUpperCase()));
+            return policyRepository.findByPolicyType_NameAndStatus(tipo, PolicyStatus.valueOf(estado.toUpperCase()), pageable);
         } else if (tipo != null) {
-            return policyRepository.findByPolicyType_Name(tipo);
+            return policyRepository.findByPolicyType_Name(tipo, pageable);
         } else if (estado != null) {
-            return policyRepository.findByStatus(PolicyStatus.valueOf(estado.toUpperCase()));
+            return policyRepository.findByStatus(PolicyStatus.valueOf(estado.toUpperCase()), pageable);
         }
-        return policyRepository.findAll();
+        return policyRepository.findAll(pageable);
     }
 
-    public List<Risk> findRisksByPolicyId(UUID policyId) {
+    @Transactional(readOnly = true)
+    public Page<Risk> findRisksByPolicyId(UUID policyId, Pageable pageable) {
         if (!policyRepository.existsById(policyId)) {
             throw new PolicyNotFoundException(policyId);
         }
-        return riskRepository.findByPolicyId(policyId);
+        return riskRepository.findByPolicyId(policyId, pageable);
     }
 }

@@ -38,9 +38,9 @@ class DemoDataTest {
         assertThat(risks.findByPolicyId(INDIVIDUAL_ID)).hasSize(1);
 
         mvc.perform(get("/v1/polizas").param("tipo", "GROUP").header("x-api-key", "123456"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[0].type").value("GROUP"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].type").value("GROUP"));
         mvc.perform(get("/v1/polizas/{id}/riesgos", GROUP_ID).header("x-api-key", "123456"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content.length()").value(2));
     }
 
     @Test
