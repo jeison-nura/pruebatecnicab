@@ -121,11 +121,15 @@ Ambas tablas viven en el schema `policy`; `outbox_event` e `ipc` también (mismo
 
 ---
 
-## 4. Por qué cada riesgo tiene id y estado propios
+## 4. Decisiones de modelado
 
-El enunciado exige cancelar **un** riesgo por id — eso exige identidad y ciclo de vida
-propios por riesgo. Un arreglo embebido (JSON/columna) no podría exponer ese contrato.
-
-> **Resumen:** el **arreglo** (`List<Risk>`) es cómo se ve en Java; las **filas con FK**
-> es cómo se guarda en la BD; el **límite** (1 vs N) es una **regla del service**;
-> el **tipo** es un **FK al catálogo**, no una jerarquía de clases.
+- `Risk` es una entidad independiente porque cada riesgo puede cancelarse y consultarse
+  por separado. Por eso tiene su propio identificador, estado y relación con `Policy`.
+- La relación entre póliza y riesgo se guarda con `policy_id` como FK. En Java, una
+  consulta de riesgos se representa como una lista; en la base, cada riesgo corresponde
+  a una fila propia.
+- La diferencia entre una póliza individual y una colectiva se resuelve como regla de
+  negocio en el service: una individual admite un riesgo y una colectiva admite varios.
+- El tipo de póliza se modela mediante `policy_type_id` hacia un catálogo común. No se
+  crean subclases JPA ni tablas diferentes para cada tipo, porque comparten los mismos
+  datos estructurales.

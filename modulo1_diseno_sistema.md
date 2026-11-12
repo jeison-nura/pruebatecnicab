@@ -60,9 +60,8 @@ El dominio (pólizas, riesgos, reglas de negocio: una individual solo tiene 1 ri
 se renueva una póliza cancelada, la cancelación propaga a los riesgos, prima = canon ×
 vigencia) vive aislado de la infraestructura. Los **puertos** son las interfaces que el
 dominio necesita: persistencia, envío al CORE, publicación de eventos, proveedor de
-notificaciones. Los **adapters** son las implementaciones concretas: JPA/H2 hoy
-(PostgreSQL en el diseño de referencia), cliente HTTP hacia WebLogic, event bus interno,
-SMTP/proveedor SMS.
+notificaciones. Los **adapters** son las implementaciones concretas: JPA/PostgreSQL,
+cliente HTTP hacia WebLogic, event bus interno, SMTP/proveedor SMS.
 
 **Por qué aquí:** la migración declarada a microservicios y el swap del event bus interno
 por Kafka dependen de que infraestructura y dominio estén desacoplados. Con puertos, ese
@@ -89,28 +88,19 @@ Aunque un monolito puede funcionar sin gateway, aquí es el **borde único de en
 exige el header `x-api-key`, ruterea `/v1` (y mañana `/v2`), aplica rate limiting,
 balancea réplicas con health checks (parte del 24/7) y observa el tráfico de punta a punta.
 
-**Por qué aquí:** el enunciado pide el componente en el diagrama, pero además el gateway
-es la misma pieza que necesitará la migración a microservicios: cuando Pólizas, Riesgos
-y Notificaciones sean servicios, el borde ya existe y solo cambia el routing.
-
-**Patrones evaluados y descartados como pilares (no como rechazo):** *CQRS completo* es
-sobre-ingeniería para este alcance; se adopta **CQRS-lite** como evolución (separar
-queries de commands y réplicas de lectura) cuando el volumen lo justifique.
-*Microservicios* es válido para el enunciado pero contradice la restricción real
-(equipo pequeño, primera implementación); queda como roadmap, no como pilar.
-*Saga* no se necesita como patrón formal en esta fase: la operación del cliente es una
-transacción local ACID (cambio de estado + evento en outbox) y el flujo outbox →
-tracking → DLQ → reconciliación ya cumple el rol de saga por coreografía con su
-compensación (cuarentena de eventos `FAILED` + alerta). El saga se formaliza en la
-migración a microservicios, cuando cada módulo tenga base propia y la escritura atómica
-local deje de existir; trigger previo: que el negocio exija registro en CORE previo a la
-validez de la póliza (se añadiría un estado `SINC_PENDIENTE` al ciclo de vida).
+Usamos un API Gateway para que todas las solicitudes entren por el mismo lugar. Ahí
+validamos la API key, controlamos el tráfico y enviamos cada solicitud a donde
+corresponde. Esto evita repetir esas tareas en cada módulo. Si más adelante separamos
+los módulos en servicios, podemos cambiar a dónde se dirige cada solicitud sin pedirles
+a los clientes que cambien la forma de conectarse.
 
 ---
 
 ## 3. Modelo de datos principal
 
-Modelo relacional (PostgreSQL como referencia; H2 en memoria para la ejecución local).
+Modelo relacional sobre PostgreSQL, también para las pruebas locales mediante Docker.
+H2 se reserva exclusivamente para la implementación simplificada del Módulo 2, que se
+ejecuta sin infraestructura externa; no forma parte de esta propuesta de arquitectura.
 **Una instancia, un schema por módulo, sin joins ni FKs cruzados entre schemas:** los
 módulos se comunican por API/eventos, nunca accediendo a tablas ajenas. Así, extraer un
 módulo como servicio mañana equivale a mover su schema, sin remodelar datos. Las reglas
@@ -196,9 +186,10 @@ variables de entorno. Las **réplicas de lectura de la base** sí se replican po
 *streaming replication*: la primaria escribe su WAL y las réplicas lo aplican en
 continuo (asíncrono, lag de milisegundos) — escrituras 100% a la primaria, lecturas a
 réplicas, con regla de **read-your-own-writes** (tras una escritura, la lectura de esa
-póliza va a la primaria). Nota local: H2 embebido no sirve para multi-instancia (cada
-proceso tendría su propia BD); para probar réplicas con k6 se usa PostgreSQL compartido
-en Docker.
+póliza va a la primaria). Para las pruebas locales, las réplicas de aplicación comparten
+una instancia de PostgreSQL en Docker. Si se quiere probar también la replicación de la
+base, se levantan contenedores de primaria y réplica con streaming replication antes de
+ejecutar k6.
 
 ### 4.2 Logs y observabilidad
 
@@ -264,8 +255,8 @@ lecturas con alto hit ratio (deja la DB en ~2.5k req/s), virtual threads de Java
 pools de todas las instancias debe caber en `max_connections` de la base). A ese volumen
 de lectura se activa el trigger declarado de las **réplicas de lectura** (CQRS-lite).
 El rate limiting por usuario no aplica a usuarios legítimos; lo que queda es admisión
-de sobrecarga (`503 + Retry-After`) y la solución de fondo es escalar. H2 es para la
-prueba local: bajo una prueba de carga seria, la base es PostgreSQL.
+de sobrecarga (`503 + Retry-After`) y la solución de fondo es escalar. Las pruebas de
+carga se ejecutan contra PostgreSQL en Docker, no contra una base embebida.
 
 ### 4.5 Versionamiento de APIs
 
@@ -307,7 +298,7 @@ flowchart TB
     ADP["Adapter Integración CORE<br/>capa media WebLogic<br/>servicio agnóstico de edición"]
     CORE["CORE transaccional legado"]
     PROV["Proveedor correo / SMS"]
-    DB[("Base de datos — una instancia, un schema por módulo<br/>PostgreSQL (referencia) / H2 (local)<br/>schema policy: policy_type (catálogo) · policy (FK al catálogo)<br/>risk · outbox_event · ipc<br/>schema notifications: notification<br/>sin joins/FKs cruzados entre schemas")]
+    DB[("Base de datos — una instancia, un schema por módulo<br/>PostgreSQL (Docker en local)<br/>schema policy: policy_type (catálogo) · policy (FK al catálogo)<br/>risk · outbox_event · ipc<br/>schema notifications: notification<br/>sin joins/FKs cruzados entre schemas")]
 
     FE -->|"HTTPS + x-api-key"| GW
     GW --> MONO

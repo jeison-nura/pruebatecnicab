@@ -1,30 +1,30 @@
 {
   "info": {
-    "_postman_id": "polizas-api-collection",
-    "name": "Polizas API",
-    "description": "Lease Insurance Policy Management API - Postman Collection",
+    "_postman_id": "polizas-api-module-2",
+    "name": "Policies API - Module 2",
+    "description": "Only the endpoints defined by the Module 2 challenge.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
+      "value": "http://localhost:8080"
     },
     {
       "key": "apiKey",
-      "value": "123456",
-      "type": "string"
+      "value": "123456"
     },
     {
       "key": "policyId",
-      "value": "",
-      "type": "string"
+      "value": "01a1ce48-d512-720a-97c8-386d6a328fdf"
     },
     {
       "key": "riskId",
-      "value": "",
-      "type": "string"
+      "value": ""
+    },
+    {
+      "key": "idempotencyKey",
+      "value": ""
     }
   ],
   "auth": {
@@ -32,228 +32,139 @@
   },
   "item": [
     {
-      "name": "Health Check",
+      "name": "GET /polizas",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/actuator/health",
-        "header": []
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/polizas?tipo=GROUP&estado=ACTIVE",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "polizas"],
+          "query": [
+            { "key": "tipo", "value": "GROUP" },
+            { "key": "estado", "value": "ACTIVE" }
+          ]
+        }
       }
     },
     {
-      "name": "Polizas",
-      "item": [
-        {
-          "name": "Listar polizas (con filtros opcionales)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/v1/polizas",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "queryParams": [
-              {
-                "key": "tipo",
-                "value": "",
-                "description": "INDIVIDUAL | GROUP",
-                "disabled": true
-              },
-              {
-                "key": "estado",
-                "value": "",
-                "description": "ACTIVE | RENEWED | CANCELLED",
-                "disabled": true
-              }
-            ]
+      "name": "GET /polizas/{id}/riesgos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
           }
-        },
-        {
-          "name": "Crear poliza INDIVIDUAL (via SQL - ver nota)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/v1/polizas",
-            "header": [],
-            "description": "No hay endpoint POST /polizas en el enunciado. Inserta via SQL en H2:\n\nINSERT INTO policy.policy (id, policy_type_id, status, validity_start, validity_end, monthly_rent, premium, version, created_at)\nVALUES (RANDOM_UUID(), 1, 'ACTIVE', '2026-01-01', '2026-07-01', 1000.00, 6000.00, 0, NOW());\n\nLuego copia el UUID generado y pégalo en la variable 'policyId'."
-          }
-        },
-        {
-          "name": "Crear poliza GROUP (via SQL - ver nota)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/v1/polizas",
-            "header": [],
-            "description": "Inserta via SQL en H2:\n\nINSERT INTO policy.policy (id, policy_type_id, status, validity_start, validity_end, monthly_rent, premium, version, created_at)\nVALUES (RANDOM_UUID(), 2, 'ACTIVE', '2026-01-01', '2026-07-01', 5000.00, 30000.00, 0, NOW());\n\nLuego copia el UUID generado y pégalo en la variable 'policyId'."
-          }
-        },
-        {
-          "name": "Renovar poliza",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/v1/polizas/{{policyId}}/renovar",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{$uuid}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            }
-          }
-        },
-        {
-          "name": "Cancelar poliza (y sus riesgos)",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/v1/polizas/{{policyId}}/cancelar",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{$uuid}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            }
-          }
-        },
-        {
-          "name": "Agregar riesgo a poliza (solo GROUP)",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/v1/polizas/{{policyId}}/riesgos",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{$uuid}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"description\": \"Riesgo torre norte\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Listar riesgos de una poliza",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/v1/polizas/{{policyId}}/riesgos",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ]
-          }
-        }
-      ]
+        ],
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/riesgos"
+      }
     },
     {
-      "name": "Riesgos",
-      "item": [
-        {
-          "name": "Cancelar riesgo individual",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/v1/riesgos/{{riskId}}/cancelar",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{$uuid}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            }
+      "name": "POST /polizas/{id}/renovar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}",
+            "disabled": true
           }
-        }
-      ]
+        ],
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/renovar"
+      }
     },
     {
-      "name": "Core Mock",
-      "item": [
-        {
-          "name": "Enviar evento a CORE mock",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/core-mock/evento",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"evento\": \"ACTUALIZACION\",\n  \"polizaId\": \"{{policyId}}\"\n}"
-            }
+      "name": "POST /polizas/{id}/cancelar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}",
+            "disabled": true
           }
-        }
-      ]
+        ],
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/cancelar"
+      }
     },
     {
-      "name": "Datos de prueba (SQL para H2)",
-      "item": [
-        {
-          "name": "Insertar datos de prueba",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}",
-            "header": [],
-            "description": "Ejecuta en H2 Console (si habilitado) o via SQL client:\n\n-- Catálogo ya existe (migración V2)\n-- Póliza INDIVIDUAL\nINSERT INTO policy.policy (id, policy_type_id, status, validity_start, validity_end, monthly_rent, premium, version, created_at)\nVALUES (RANDOM_UUID(), 1, 'ACTIVE', '2026-01-01', '2026-07-01', 1000.00, 6000.00, 0, NOW());\n\n-- Póliza GROUP\nINSERT INTO policy.policy (id, policy_type_id, status, validity_start, validity_end, monthly_rent, premium, version, created_at)\nVALUES (RANDOM_UUID(), 2, 'ACTIVE', '2026-01-01', '2026-07-01', 5000.00, 30000.00, 0, NOW());\n\n-- IPC para renovación\nINSERT INTO policy.ipc (application_date, percentage) VALUES ('2026-12-01', 3.50);\n\n-- Luego copia los UUIDs generados a las variables 'policyId' y 'riskId'."
+      "name": "POST /polizas/{id}/riesgos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}",
+            "disabled": true
           }
-        }
-      ]
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Apartment 3\"\n}"
+        },
+        "url": "{{baseUrl}}/v1/polizas/{{policyId}}/riesgos"
+      }
+    },
+    {
+      "name": "POST /riesgos/{id}/cancelar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}",
+            "disabled": true
+          }
+        ],
+        "url": "{{baseUrl}}/v1/riesgos/{{riskId}}/cancelar"
+      }
+    },
+    {
+      "name": "POST /core-mock/evento",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"evento\": \"ACTUALIZACION\",\n  \"polizaId\": 555\n}"
+        },
+        "url": "{{baseUrl}}/core-mock/evento"
+      }
     }
   ]
 }
