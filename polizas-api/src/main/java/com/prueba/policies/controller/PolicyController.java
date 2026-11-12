@@ -14,11 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.prueba.policies.domain.Policy;
 import com.prueba.policies.domain.Risk;
-import com.prueba.policies.domain.PolicyStatus;
 import com.prueba.policies.service.PolicyService;
 
+import jakarta.validation.Valid;
+
 @RestController
-@RequestMapping("/v1/polizas")
+@RequestMapping("/v1")
 public class PolicyController implements PolicyControllerOperations {
 
     private final PolicyService policyService;
@@ -28,11 +29,10 @@ public class PolicyController implements PolicyControllerOperations {
     }
 
     @Override
-    @GetMapping
+    @GetMapping("/polizas")
     public ResponseEntity<List<PolicyDTO>> getAllPolicies(
             @RequestParam(required = false) String tipo,
             @RequestParam(required = false) String estado) {
-        
         List<Policy> policies = policyService.findAll(tipo, estado);
         List<PolicyDTO> dtos = policies.stream()
                 .map(this::toDTO)
@@ -41,7 +41,7 @@ public class PolicyController implements PolicyControllerOperations {
     }
 
     @Override
-    @GetMapping("/{id}/riesgos")
+    @GetMapping("/polizas/{id}/riesgos")
     public ResponseEntity<List<RiskDTO>> getRisksByPolicyId(@PathVariable UUID id) {
         List<Risk> risks = policyService.findRisksByPolicyId(id);
         List<RiskDTO> dtos = risks.stream()
@@ -51,21 +51,21 @@ public class PolicyController implements PolicyControllerOperations {
     }
 
     @Override
-    @PostMapping("/{id}/riesgos")
-    public ResponseEntity<RiskDTO> addRisk(@PathVariable UUID id, @RequestBody CreateRiskRequest request) {
+    @PostMapping("/polizas/{id}/riesgos")
+    public ResponseEntity<RiskDTO> addRisk(@PathVariable UUID id, @Valid @RequestBody CreateRiskRequest request) {
         Risk risk = policyService.addRisk(id, request.description());
         return ResponseEntity.ok(toDTO(risk));
     }
 
     @Override
-    @PostMapping("/{id}/renovar")
+    @PostMapping("/polizas/{id}/renovar")
     public ResponseEntity<PolicyDTO> renewPolicy(@PathVariable UUID id) {
         Policy policy = policyService.renew(id);
         return ResponseEntity.ok(toDTO(policy));
     }
 
     @Override
-    @PostMapping("/{id}/cancelar")
+    @PostMapping("/polizas/{id}/cancelar")
     public ResponseEntity<PolicyDTO> cancelPolicy(@PathVariable UUID id) {
         Policy policy = policyService.cancelPolicy(id);
         return ResponseEntity.ok(toDTO(policy));

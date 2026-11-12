@@ -1,5 +1,9 @@
 package com.prueba.policies.controller;
 
+import java.time.LocalDateTime;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,12 +16,10 @@ import com.prueba.policies.service.exception.RiskNotFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(PolicyNotFoundException.class)
     public ResponseEntity<ErrorResponse> handlePolicyNotFound(PolicyNotFoundException ex, HttpServletRequest request) {
@@ -50,10 +52,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
+        // Never log exception messages or payloads: they can contain untrusted data.
+        log.atError().addKeyValue("errorCode", "INTERNAL_ERROR")
+                .addKeyValue("exceptionType", ex.getClass().getSimpleName()).log("http.request.error");
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred", request.getRequestURI());
     }
 
     private ResponseEntity<ErrorResponse> buildError(HttpStatus status, String code, String message, String path) {
+        if (status.is4xxClientError()) {
+            log.atWarn().addKeyValue("errorCode", code).addKeyValue("status", status.value())
+                    .log("http.request.error");
+        }
         ErrorResponse body = new ErrorResponse(
                 LocalDateTime.now(),
                 status.value(),

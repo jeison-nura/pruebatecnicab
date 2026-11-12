@@ -54,6 +54,9 @@ public class Policy {
     @Column(name = "validity_end", nullable = false)
     private LocalDate validityEnd;
 
+    @Column(name = "initial_months", nullable = false)
+    private long initialMonths;
+
     @Column(name = "monthly_rent", nullable = false, precision = 12, scale = 2)
     private BigDecimal monthlyRent;
 
@@ -79,11 +82,16 @@ public class Policy {
         this.validityStart = validityStart;
         this.validityEnd = validityEnd;
         this.monthlyRent = monthlyRent;
-        this.premium = monthlyRent.multiply(BigDecimal.valueOf(monthsOfValidity()));
+        this.initialMonths = monthsOfValidity();
+        this.premium = monthlyRent.multiply(BigDecimal.valueOf(initialMonths));
     }
 
     public long monthsOfValidity() {
         return Math.max(1, ChronoUnit.MONTHS.between(validityStart, validityEnd));
+    }
+
+    public long getInitialMonths() {
+        return initialMonths;
     }
 
     @PrePersist

@@ -1,26 +1,24 @@
 package com.prueba.policies.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.prueba.policies.domain.Policy;
+import com.prueba.policies.domain.PolicyStatus;
+import com.prueba.policies.domain.Risk;
+import com.prueba.policies.domain.RiskStatus;
 import com.prueba.policies.repository.IpcRepository;
 import com.prueba.policies.repository.PolicyJpaRepository;
 import com.prueba.policies.repository.RiskJpaRepository;
 import com.prueba.policies.service.exception.BusinessRuleException;
 import com.prueba.policies.service.exception.PolicyNotFoundException;
 import com.prueba.policies.service.exception.RiskNotFoundException;
-import com.prueba.policies.domain.Ipc;
-import com.prueba.policies.domain.Policy;
-import com.prueba.policies.domain.PolicyStatus;
-import com.prueba.policies.domain.Risk;
-import com.prueba.policies.domain.RiskStatus;
 
 /**
  * Business rules of the statement (Spring Boot layer: service).
@@ -42,19 +40,17 @@ public class PolicyService {
         this.ipcRepository = ipcRepository;
     }
 
-    /**
-     * Rule 4: adding a risk requires validating the policy type.
-     * Rule 1: an individual policy can only have 1 (active) risk.
-     * Group policies accept 1..N risks.
-     */
+    /** Only group policies accept new risks through this endpoint. */
     @Transactional
     public Risk addRisk(UUID policyId, String description) {
         Policy policy = policyRepository.findByIdForUpdate(policyId)
                 .orElseThrow(() -> new PolicyNotFoundException(policyId));
 
-        if (policy.getPolicyType().isIndividual()
-                && riskRepository.countByPolicyIdAndStatus(policyId, RiskStatus.ACTIVE) >= 1) {
-            throw new BusinessRuleException("An individual policy can only have 1 active risk");
+        if (!policy.getPolicyType().isGroup()) {
+            throw new BusinessRuleException("Risks can only be added to group policies");
+        }
+        if (policy.getStatus() == PolicyStatus.CANCELLED) {
+            throw new BusinessRuleException("Risks cannot be added to a cancelled policy");
         }
 
         return riskRepository.save(new Risk(policy, description));
@@ -74,22 +70,20 @@ public class PolicyService {
             throw new BusinessRuleException("A cancelled policy cannot be renewed");
         }
 
-        long initialMonths = policy.monthsOfValidity();
+        long initialMonths = policy.getInitialMonths();
         LocalDate newValidityEnd = policy.getValidityEnd().plusMonths(initialMonths);
 
         // Adjust monthly rent by the latest IPC applicable at renewal time
-        BigDecimal adjustedMonthlyRent = policy.getMonthlyRent();
-        Optional<Ipc> applicableIpc = ipcRepository.findFirstByApplicationDateLessThanEqualOrderByApplicationDateDesc(newValidityEnd);
-        if (applicableIpc.isPresent()) {
-            BigDecimal factor = BigDecimal.ONE.add(applicableIpc.get().getPercentage().divide(BigDecimal.valueOf(100)));
-            adjustedMonthlyRent = policy.getMonthlyRent().multiply(factor).setScale(2, BigDecimal.ROUND_HALF_UP);
-            policy.setMonthlyRent(adjustedMonthlyRent);
-        }
+        BigDecimal adjustedMonthlyRent = ipcRepository.findFirstByApplicationDateLessThanEqualOrderByApplicationDateDesc(policy.getValidityEnd())
+                .map(ipc -> policy.getMonthlyRent().multiply(
+                        BigDecimal.ONE.add(ipc.getPercentage().movePointLeft(2)))
+                        .setScale(2, RoundingMode.HALF_UP))
+                .orElse(policy.getMonthlyRent());
+        policy.setMonthlyRent(adjustedMonthlyRent);
 
         policy.setValidityEnd(newValidityEnd);
         policy.setStatus(PolicyStatus.RENEWED);
-        long totalMonths = ChronoUnit.MONTHS.between(policy.getValidityStart(), newValidityEnd);
-        policy.setPremium(adjustedMonthlyRent.multiply(BigDecimal.valueOf(totalMonths)));
+        policy.setPremium(adjustedMonthlyRent.multiply(BigDecimal.valueOf(initialMonths)));
 
         return policyRepository.save(policy);
     }
@@ -119,11 +113,6 @@ public class PolicyService {
         return riskRepository.save(risk);
     }
 
-    private Policy findPolicy(UUID policyId) {
-        return policyRepository.findById(policyId)
-                .orElseThrow(() -> new PolicyNotFoundException(policyId));
-    }
-
     public List<Policy> findAll(String tipo, String estado) {
         if (tipo != null && estado != null) {
             return policyRepository.findByPolicyType_NameAndStatus(tipo, PolicyStatus.valueOf(estado.toUpperCase()));
@@ -136,6 +125,9 @@ public class PolicyService {
     }
 
     public List<Risk> findRisksByPolicyId(UUID policyId) {
+        if (!policyRepository.existsById(policyId)) {
+            throw new PolicyNotFoundException(policyId);
+        }
         return riskRepository.findByPolicyId(policyId);
     }
 }

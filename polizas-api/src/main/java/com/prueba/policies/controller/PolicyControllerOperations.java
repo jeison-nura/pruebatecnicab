@@ -5,6 +5,9 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public interface PolicyControllerOperations {
 
     ResponseEntity<List<PolicyDTO>> getAllPolicies(String type, String status);
@@ -25,4 +28,4 @@ record PolicyDTO(UUID id, String type, String status, String validityStart, Stri
 
 record RiskDTO(UUID id, UUID policyId, String description, String status, String createdAt) {}
 
-record CreateRiskRequest(String description) {}
+record CreateRiskRequest(@NotBlank @Size(max = 255) String description) {}

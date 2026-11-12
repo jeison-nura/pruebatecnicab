@@ -1,10 +1,10 @@
 package com.prueba.policies.config;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,14 +12,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.List;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class ApiKeyFilter extends OncePerRequestFilter {
 
     private static final String API_KEY_HEADER = "x-api-key";
-    private static final String VALID_API_KEY = "123456";
+    private final String validApiKey;
+
+    public ApiKeyFilter(@Value("${app.api-key}") String validApiKey) {
+        this.validApiKey = validApiKey;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -27,7 +33,7 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Skip actuator endpoints
+        // Health checks do not require the challenge API key.
         if (path.startsWith("/actuator")) {
             filterChain.doFilter(request, response);
             return;
@@ -35,7 +41,7 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 
         String apiKey = request.getHeader(API_KEY_HEADER);
 
-        if (apiKey == null || !VALID_API_KEY.equals(apiKey)) {
+        if (!validApiKey.equals(apiKey)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("""
@@ -46,11 +52,11 @@ public class ApiKeyFilter extends OncePerRequestFilter {
                     "message": "Missing or invalid x-api-key header",
                     "path": "%s"
                 }
-                """.formatted(java.time.LocalDateTime.now(), path));
+                """.formatted(LocalDateTime.now(), path));
             return;
         }
 
-        // Set authentication in SecurityContext so Spring Security's authenticated() check passes
+        // Mark the verified request as authenticated for the security chain.
         Authentication auth = new UsernamePasswordAuthenticationToken(
                 "api-user", null, List.of(new SimpleGrantedAuthority("ROLE_API")));
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -58,7 +64,6 @@ public class ApiKeyFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
-            // Clear context after request
             SecurityContextHolder.clearContext();
         }
     }
